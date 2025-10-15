@@ -1,17 +1,22 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 import pandas as pd
+import re
 
 app = FastAPI(
     title="Buscador Público de Datos",
     description="Busca por SAP, Ciudad o Nombre y devuelve la información de las demás columnas.",
-    version="2.0"
+    version="3.0"
 )
 
 # Cargar el Excel
 df = pd.read_excel("datos.xlsx", dtype=str).fillna("")
 
-# Página web principal
+def convertir_urls_a_links(valor):
+    if isinstance(valor, str) and re.match(r"^https?://", valor):
+        return f'<a href="{valor}" target="_blank">{valor}</a>'
+    return valor
+
 @app.get("/", response_class=HTMLResponse)
 async def home():
     return '''
@@ -27,9 +32,11 @@ async def home():
             padding: 10px; font-size: 16px;
             border: 1px solid #ccc; border-radius: 5px;
           }
-          table { border-collapse: collapse; margin-top: 20px; width: 100%; }
+          table { border-collapse: collapse; margin-top: 20px; width: 100%; background: white; }
           th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
           th { background: #eee; }
+          a { color: #007bff; text-decoration: none; }
+          a:hover { text-decoration: underline; }
         </style>
       </head>
       <body>
@@ -42,19 +49,25 @@ async def home():
     </html>
     '''
 
-# Página de resultados
 @app.get("/buscar", response_class=HTMLResponse)
 async def buscar(request: Request):
     q = request.query_params.get("q", "").strip().lower()
     if not q:
         return "<p>Por favor escribe algo para buscar.</p><a href='/'>Volver</a>"
+
     resultados = df[df.apply(lambda row: row.astype(str).str.lower().str.contains(q).any(), axis=1)]
     if resultados.empty:
         return f"<p>No se encontraron resultados para '{q}'.</p><a href='/'>Volver</a>"
-    tabla_html = resultados.to_html(index=False, border=1)
+
+    resultados_html = resultados.applymap(convertir_urls_a_links)
+
+    tabla_html = "<table><tr>" + "".join([f"<th>{col}</th>" for col in resultados_html.columns]) + "</tr>"
+    for _, fila in resultados_html.iterrows():
+        tabla_html += "<tr>" + "".join([f"<td>{valor}</td>" for valor in fila]) + "</tr>"
+    tabla_html += "</table>"
+
     return f"<html><body><h3>Resultados para: '{q}'</h3>{tabla_html}<br><a href='/'>🔙 Nueva búsqueda</a></body></html>"
 
-# API JSON (opcional)
 @app.get("/api/consulta/{valor}")
 async def consulta(valor: str):
     valor = valor.strip().lower()

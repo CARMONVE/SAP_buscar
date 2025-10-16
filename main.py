@@ -108,9 +108,9 @@ async def buscar(request: Request):
 
     # 🔹 Si el texto es numérico → buscar solo en SAP
     if q.isdigit():
-        if "SAP" not in df.columns:
+        if "Unnamed: 3" not in df.columns:
             return "<p>Error: no existe una columna llamada 'SAP' en el archivo Excel.</p>"
-        resultados = df[df["SAP"].astype(str).str.contains(q, case=False, na=False)]
+        resultados = df[df["Unnamed: 3"].astype(str).str.contains(q, case=False, na=False)]
     else:
         # 🔹 Si es texto → buscar en todas las columnas
         resultados = df[df.apply(lambda row: row.astype(str).str.lower().str.contains(q.lower()).any(), axis=1)]
@@ -141,7 +141,7 @@ async def buscar(request: Request):
         <link href='https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap' rel='stylesheet'>
         <style>
           body {{
-            background: #f2f2f2;
+            background: #ff8000;
             font-family: 'Poppins', sans-serif;
             padding: 40px;
             color: #0a3d91;
@@ -157,7 +157,7 @@ async def buscar(request: Request):
             overflow: hidden;
           }}
           th {{
-            background: #0a3d91;
+            background: #999999;
             color: white;
             padding: 10px;
             text-align: left;
@@ -197,8 +197,8 @@ async def buscar(request: Request):
 @app.get("/api/consulta/{valor}")
 async def consulta(valor: str):
     valor = valor.strip()
-    if valor.isdigit() and "SAP" in df.columns:
-        coincidencias = df[df["SAP"].astype(str).str.contains(valor, case=False, na=False)]
+    if valor.isdigit() and "Unnamed: 3" in df.columns:
+        coincidencias = df[df["Unnamed: 3"].astype(str).str.contains(valor, case=False, na=False)]
     else:
         coincidencias = df[df.apply(lambda row: row.astype(str).str.lower().str.contains(valor.lower()).any(), axis=1)]
     if coincidencias.empty:
